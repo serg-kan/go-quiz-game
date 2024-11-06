@@ -17,6 +17,11 @@ import (
 
 */
 
+type Question struct {
+	question string
+	answer string
+}
+
 func main() {
 	file, err := os.Open("problems.csv")
 
@@ -34,15 +39,25 @@ func main() {
 		return
 	}
 
-	var correctAnswers int = 0 
+	correctAnswers := 0
 
-	for index := 0; index < 3; index++ {
-		fmt.Printf("Problem %v: %v = ", index + 1, rows[index][0])
+	var questions []Question
+
+	for _, row := range rows {
+		questions = append(questions, Question{
+			question: row[0],
+			answer: row[1],
+		})
+	}
+
+
+	for index, question := range questions {
+		fmt.Printf("Problem %v: %v = ", index + 1, question.question)
 		
 		var answer string
 		fmt.Scan(&answer)
 
-		if answer == rows[index][1] {
+		if answer == question.answer {
 			correctAnswers++
 		}
 	}
