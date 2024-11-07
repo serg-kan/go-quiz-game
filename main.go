@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"os"
 	"encoding/csv"
+	"time"
+	"sync"
 )
 
 /*
+
+Part 1: 
 
 1. научиться читать csv файл
 2. вытащить вопросы
@@ -16,13 +20,30 @@ import (
 5. разобраться, как передавать флаги в параметры при запуске 
 
 */
+/*
+
+Part 2: 
+
+1. запустить таймер в начале игры
+2. задавать вопросы не обращая внимания на таймер
+3. по окончании таймера выключать программу
+
+*/
 
 type Question struct {
 	question string
 	answer string
 }
 
+var wg = sync.WaitGroup{}
+
 func main() {
+
+	wg.Add(1)
+	go startTimer()
+	fmt.Println("main func")
+
+
 	file, err := os.Open("problems.csv")
 
 	if err != nil {
@@ -50,6 +71,7 @@ func main() {
 		})
 	}
 
+	
 
 	for index, question := range questions {
 		fmt.Printf("Problem %v: %v = ", index + 1, question.question)
@@ -63,4 +85,15 @@ func main() {
 	}
 
 	fmt.Printf("Correct answers: %v/%v\n", correctAnswers, len(rows))
+
+	wg.Wait()
+}
+
+func startTimer() {
+	time.Sleep(5 * time.Second)
+	fmt.Println("Start quiz")
+	
+	os.Exit(0)
+
+	wg.Done()
 }
