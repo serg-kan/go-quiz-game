@@ -5,7 +5,7 @@ import (
 	"os"
 	"encoding/csv"
 	"time"
-	// "sync"
+	"sync"
 )
 
 /*
@@ -38,14 +38,14 @@ type Question struct {
 	answer string
 }
 
-// var wg = sync.WaitGroup{}
+var wg = sync.WaitGroup{}
 
 func main() {
 	
 	timerCh := make(chan bool) 
+	answerCh := make(chan string)
 	// запись и чтение канала блокирует функцию
 
-	
 	fmt.Println("main func")
 
 	rows, err := readFile("problems.csv")
@@ -62,38 +62,12 @@ func main() {
 		})
 	}
 
-	// wg.Add(1)/
+	wg.Add(1)
 	go startTimer(timerCh)
-
-	timerFlag := false
-	correctAnswers := 0
-
-
-	for index, question := range questions {
-		if timerFlag {
-			break
-		}
-
-		select {
-			case <-timerCh:
-				fmt.Println("Time is up")
-				timerFlag = true
-			
-			default:
-				fmt.Printf("Problem %v: %v = ", index + 1, question.question)
-				
-				var answer string
-				fmt.Scan(&answer)
-
-				if answer == question.answer {
-					correctAnswers++
-				}
-		}
-	}
-
-	fmt.Printf("Correct answers: %v/%v\n", correctAnswers, len(rows))
-
-	// wg.Wait()
+	wg.Add(1)
+	go quiz(questions, timerCh, answerCh)
+	
+	wg.Wait()
 }
 
 func readFile(name string) ([][]string, error) {
@@ -109,6 +83,57 @@ func readFile(name string) ([][]string, error) {
 	return reader.ReadAll()
 }
 
+func quiz(questions []Question, timerCh chan bool, answerCh chan string) {
+	correctAnswers := 0
+
+	for index, question := range questions {
+		fmt.Printf("Problem %v: %v = ", index + 1, question.question)
+
+		go readAnswer(answerCh)
+
+		select {
+			case <-timerCh:
+				fmt.Println("Time is up")
+				return
+			case answer:=<-answerCh:
+				if answer == question.answer {
+					correctAnswers++
+				}
+		}
+	}
+
+	fmt.Printf("Correct answers: %v/%v\n", correctAnswers, len(questions))
+	wg.Done()
+}
+
+// func quiz2(questions []Question, timerCh chan bool, answerCh chan string) {
+// 	correctAnswers := 0
+
+// 	for index, question := range questions {
+// 		select {
+// 			case <-timerCh:
+// 				fmt.Println("Time is up")
+// 				return
+// 			case answer:=<-answerCh:
+// 				fmt.Println("Answer", answerCh)
+// 				if answer == question.answer {
+// 					correctAnswers++
+// 				}
+	
+// 			default:
+// 				fmt.Printf("Problem %v: %v = ", index + 1, question.question)
+// 				readAnswer(answerCh)	 // если оставить без go, то блокируется вызов, но тк внутри функции пишем в канал, а читателей нет - дедлок
+										// если вызывать как горутину, то выводится несколько вопросов сразу, тк select не ждет ответа от пользака
+										// если вынести вызов горутины за select, select будет ждать ответа (заблокированно) либо от таймера, либо от ответа
+// 		}
+// 	}
+
+// 	fmt.Printf("Correct answers: %v/%v\n", correctAnswers, len(questions))
+// 	wg.Done()
+// }
+
+
+
 func startTimer(ch chan bool) {
 	// ch <- false 
 
@@ -116,5 +141,12 @@ func startTimer(ch chan bool) {
 	ch <- true
 	fmt.Println("timer finished")
 
-	// wg.Done()
+	wg.Done()
+}
+
+func readAnswer(answerCh chan string) {
+	var answer string
+	fmt.Scan(&answer)
+
+	answerCh <- answer
 }
