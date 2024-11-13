@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"time"
 	"sync"
+	"flag"
 )
 
 /*
@@ -41,6 +42,9 @@ type Question struct {
 var wg = sync.WaitGroup{}
 
 func main() {
+
+	csvFilename := flag.String("csv", "problems.csv", "a csv file with questions")
+	flag.Parse()
 	
 	timerCh := make(chan bool) 
 	answerCh := make(chan string)
@@ -48,7 +52,7 @@ func main() {
 
 	fmt.Println("main func")
 
-	rows, err := readFile("problems.csv")
+	rows, err := readFile(*csvFilename)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
